@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="deep">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Bubble — raise it, back it, pop it</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🫧</text></svg>">
+<style>
+:root{
+  --deep:#07121e;
+  --deep-2:#0b1c2c;
+  --panel:rgba(255,255,255,.055);
+  --panel-solid:#0e2033;
+  --line:rgba(255,255,255,.12);
+  --line-soft:rgba(255,255,255,.07);
+  --foam:#e9f3f8;
+  --mist:#90a8ba;
+  --glow:#59d2ff;
+  --r1:#4fd1a5; --r2:#58c7f0; --r3:#9b8cff; --r4:#ffb25c; --r5:#ff6b81;
+  --ok:#4fd1a5; --warn:#ffb25c; --hot:#ff6b81;
+  --radius:14px;
+  --shadow:0 18px 50px rgba(0,0,0,.45);
+}
+html[data-theme="milk"]{
+  --deep:#eef3f6;
+  --deep-2:#e2ecf1;
+  --panel:rgba(255,255,255,.82);
+  --panel-solid:#ffffff;
+  --line:rgba(11,40,60,.16);
+  --line-soft:rgba(11,40,60,.09);
+  --foam:#0b2233;
+  --mist:#5a7285;
+  --glow:#0d8ec2;
+  --shadow:0 14px 34px rgba(16,53,74,.14);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  font-family:Inter,"Helvetica Neue",Arial,sans-serif;
+  color:var(--foam);
+  background:
+    radial-gradient(1100px 700px at 78% -10%, rgba(89,210,255,.16), transparent 60%),
+    radial-gradient(900px 600px at 8% 108%, rgba(155,140,255,.14), transparent 62%),
+    linear-gradient(175deg, var(--deep), var(--deep-2));
+  background-attachment:fixed;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,.display{font-family:"Bricolage Grotesque",Inter,sans-serif;font-weight:800;letter-spacing:-.02em;margin:0}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+a{color:var(--glow)}
+:focus-visible{outline:2px solid var(--glow);outline-offset:2px;border-radius:8px}
+
+/* ---------- chrome ---------- */
+.topbar{
+  position:sticky;top:0;z-index:40;
+  display:flex;align-items:center;gap:16px;
+  padding:14px 20px;
+  border-bottom:1px solid var(--line-soft);
+  backdrop-filter:blur(14px);
+  background:linear-gradient(to bottom, rgba(7,18,30,.72), rgba(7,18,30,.28));
+}
+html[data-theme="milk"] .topbar{background:linear-gradient(to bottom, rgba(255,255,255,.8), rgba(255,255,255,.4))}
+.brand{display:flex;align-items:center;gap:10px;font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:20px;letter-spacing:-.03em}
+.brand .mark{width:26px;height:26px;border-radius:50%;
+  background:radial-gradient(circle at 32% 28%, #fff 0 8%, rgba(89,210,255,.85) 26%, rgba(155,140,255,.55) 60%, rgba(255,107,129,.5) 100%);
+  box-shadow:inset 0 0 8px rgba(255,255,255,.7), 0 0 18px rgba(89,210,255,.45)}
+.brand small{font-family:Inter;font-weight:500;font-size:12px;color:var(--mist);letter-spacing:0}
+.spacer{flex:1}
+.seg{display:flex;padding:3px;gap:3px;background:var(--panel);border:1px solid var(--line-soft);border-radius:999px}
+.seg button{border:0;background:transparent;color:var(--mist);padding:7px 15px;border-radius:999px;font-size:13px;font-weight:600}
+.seg button[aria-pressed="true"]{background:var(--foam);color:var(--deep)}
+html[data-theme="milk"] .seg button[aria-pressed="true"]{background:#0b2233;color:#fff}
+.icon-btn{border:1px solid var(--line-soft);background:var(--panel);border-radius:10px;width:36px;height:36px;display:grid;place-items:center;font-size:15px}
+.who{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--mist);border:1px solid var(--line-soft);background:var(--panel);padding:6px 12px;border-radius:999px}
+.who b{color:var(--foam);font-weight:600}
+
+.wrap{max-width:1180px;margin:0 auto;padding:26px 20px 90px}
+.btn{border:1px solid var(--line);background:var(--panel);color:var(--foam);padding:10px 16px;border-radius:11px;font-size:14px;font-weight:600}
+.btn:hover{border-color:var(--glow)}
+.btn.primary{background:linear-gradient(140deg,#7fe3ff,#5aa8ff);color:#05141f;border-color:transparent;box-shadow:0 10px 26px rgba(89,168,255,.28)}
+.btn.ghost{background:transparent}
+.btn.danger{background:linear-gradient(140deg,#ff8b9c,#ff5d74);color:#28060c;border-color:transparent}
+.btn:disabled{opacity:.42;cursor:not-allowed;box-shadow:none}
+.btn.sm{padding:7px 12px;font-size:13px;border-radius:9px}
+
+/* ---------- user view ---------- */
+.hero{display:grid;grid-template-columns:1.25fr .75fr;gap:22px;align-items:stretch;margin-bottom:26px}
+@media (max-width:820px){.hero{grid-template-columns:1fr}}
+.hero-card{
+  position:relative;overflow:hidden;
+  border:1px solid var(--line-soft);border-radius:22px;padding:30px;
+  background:var(--panel);box-shadow:var(--shadow);
+}
+.hero-card h1{font-size:clamp(30px,4.4vw,46px);line-height:1.02;max-width:16ch}
+.hero-card p{color:var(--mist);max-width:52ch;font-size:15px;line-height:1.6;margin:14px 0 22px}
+.hero-orbs{position:absolute;inset:0;pointer-events:none;opacity:.6}
+.orb{position:absolute;border-radius:50%;background:radial-gradient(circle at 30% 26%, rgba(255,255,255,.75) 0 6%, rgba(89,210,255,.3) 30%, rgba(155,140,255,.14) 70%, transparent 74%);border:1px solid rgba(255,255,255,.14)}
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.stat{border:1px solid var(--line-soft);border-radius:16px;padding:16px 18px;background:var(--panel)}
+.stat .n{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:30px;line-height:1}
+.stat .l{color:var(--mist);font-size:12.5px;margin-top:6px}
+
+.tabs{display:flex;gap:18px;border-bottom:1px solid var(--line-soft);margin:6px 0 18px}
+.tabs button{background:none;border:0;padding:10px 2px;color:var(--mist);font-weight:600;font-size:14px;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs button[aria-selected="true"]{color:var(--foam);border-bottom-color:var(--glow)}
+
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:14px}
+.card{
+  border:1px solid var(--line-soft);border-radius:18px;padding:18px;background:var(--panel);
+  display:flex;flex-direction:column;gap:10px;position:relative;
+}
+.card:hover{border-color:var(--line)}
+.card .area{font-size:12px;color:var(--mist)}
+.card h3{font-size:17px;line-height:1.25}
+.card .sol{font-size:13.5px;color:var(--mist);line-height:1.5}
+.card .foot{display:flex;align-items:center;gap:10px;margin-top:auto;padding-top:10px;border-top:1px solid var(--line-soft)}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:4px 9px;border-radius:999px;border:1px solid var(--line-soft);color:var(--mist)}
+.pill .dot{width:8px;height:8px;border-radius:50%}
+.pill.live{color:var(--ok);border-color:rgba(79,209,165,.35)}
+.pill.warm{color:var(--warn);border-color:rgba(255,178,92,.35)}
+.pill.hot{color:var(--hot);border-color:rgba(255,107,129,.38)}
+.backers{font-size:12.5px;color:var(--mist)}
+.empty{border:1px dashed var(--line);border-radius:18px;padding:40px 24px;text-align:center;color:var(--mist)}
+.empty b{display:block;color:var(--foam);font-size:16px;margin-bottom:6px;font-family:"Bricolage Grotesque",sans-serif}
+
+/* ---------- admin ---------- */
+.gate{max-width:420px;margin:12vh auto;text-align:center}
+.gate .mark-lg{width:64px;height:64px;border-radius:50%;margin:0 auto 18px;
+  background:radial-gradient(circle at 32% 28%, #fff 0 7%, rgba(89,210,255,.8) 28%, rgba(155,140,255,.5) 62%, rgba(255,107,129,.45) 100%);
+  box-shadow:inset 0 0 14px rgba(255,255,255,.6), 0 0 34px rgba(89,210,255,.35)}
+.gate input{width:100%;text-align:center;letter-spacing:.4em;font-size:20px;padding:14px;margin:18px 0 12px;
+  background:var(--panel);border:1px solid var(--line);border-radius:12px}
+.hint{color:var(--mist);font-size:12.5px}
+
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px}
+.field-input{background:var(--panel);border:1px solid var(--line-soft);border-radius:11px;padding:9px 12px;font-size:13.5px;min-width:130px}
+select.field-input{appearance:none;padding-right:28px;
+  background-image:linear-gradient(45deg,transparent 50%,var(--mist) 50%),linear-gradient(135deg,var(--mist) 50%,transparent 50%);
+  background-position:calc(100% - 15px) 52%,calc(100% - 10px) 52%;background-size:5px 5px,5px 5px;background-repeat:no-repeat}
+
+#field{
+  position:relative;height:min(74vh,720px);min-height:430px;
+  border:1px solid var(--line-soft);border-radius:24px;overflow:hidden;
+  background:
+    radial-gradient(60% 60% at 50% 45%, rgba(89,210,255,.10), transparent 70%),
+    var(--panel);
+}
+.bub{
+  position:absolute;border-radius:50%;border:1px solid rgba(255,255,255,.28);
+  display:grid;place-content:center;text-align:center;padding:6px;
+  cursor:pointer;color:#fff;
+  transition:transform .18s ease, filter .18s ease;
+  animation:drift 9s ease-in-out infinite;
+}
+html[data-theme="milk"] .bub{color:#06202f;border-color:rgba(255,255,255,.7)}
+.bub:hover{transform:scale(1.05);filter:brightness(1.12);z-index:5}
+.bub .b-area{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;line-height:1.1;max-width:92%;overflow:hidden}
+.bub .b-meta{font-size:10.5px;opacity:.85;margin-top:3px}
+.bub.tiny .b-meta{display:none}
+@keyframes drift{0%,100%{translate:0 0}50%{translate:0 -7px}}
+@media (prefers-reduced-motion:reduce){.bub{animation:none}}
+.bub.popping{animation:pop .45s ease forwards}
+@keyframes pop{40%{transform:scale(1.22);filter:brightness(1.5)}100%{transform:scale(.2);opacity:0}}
+.field-note{position:absolute;left:16px;bottom:14px;font-size:12px;color:var(--mist);pointer-events:none}
+
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{text-align:left;color:var(--mist);font-weight:600;font-size:12px;padding:10px 12px;border-bottom:1px solid var(--line)}
+td{padding:12px;border-bottom:1px solid var(--line-soft);vertical-align:middle}
+tbody tr{cursor:pointer}
+tbody tr:hover{background:var(--panel)}
+.rank{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;color:var(--mist);width:34px}
+.sizebar{height:7px;border-radius:99px;background:linear-gradient(90deg,var(--glow),#9b8cff);min-width:6px}
+.tablewrap{border:1px solid var(--line-soft);border-radius:18px;overflow:auto;background:var(--panel)}
+
+/* ---------- modal ---------- */
+.veil{position:fixed;inset:0;background:rgba(3,10,17,.68);backdrop-filter:blur(6px);z-index:60;display:grid;place-items:center;padding:18px}
+.veil[hidden]{display:none}
+.modal{
+  width:min(720px,100%);max-height:88vh;overflow:auto;
+  background:var(--panel-solid);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);
+}
+.modal-head{display:flex;align-items:flex-start;gap:14px;padding:22px 24px 0}
+.modal-head h2{font-size:22px;flex:1;line-height:1.2}
+.modal-body{padding:18px 24px 24px;display:grid;gap:16px}
+.modal-foot{position:sticky;bottom:0;display:flex;gap:10px;justify-content:flex-end;padding:16px 24px;
+  border-top:1px solid var(--line-soft);background:var(--panel-solid)}
+label.f{display:grid;gap:6px;font-size:13px;color:var(--mist)}
+label.f input,label.f textarea,label.f select{
+  background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:11px;padding:11px 12px;font-size:14px;color:var(--foam);width:100%}
+html[data-theme="milk"] label.f input,html[data-theme="milk"] label.f textarea,html[data-theme="milk"] label.f select{background:#f6fafc}
+label.f textarea{resize:vertical;min-height:84px;line-height:1.5}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:560px){.grid2{grid-template-columns:1fr}}
+.rate{display:flex;gap:8px}
+.rate button{flex:1;padding:11px 0;border-radius:11px;border:1px solid var(--line);background:transparent;color:var(--mist);font-weight:700}
+.rate button[aria-pressed="true"]{color:#06141f;border-color:transparent}
+.rate button[data-v="1"][aria-pressed="true"]{background:var(--r1)}
+.rate button[data-v="2"][aria-pressed="true"]{background:var(--r2)}
+.rate button[data-v="3"][aria-pressed="true"]{background:var(--r3)}
+.rate button[data-v="4"][aria-pressed="true"]{background:var(--r4)}
+.rate button[data-v="5"][aria-pressed="true"]{background:var(--r5)}
+.rate-legend{font-size:12px;color:var(--mist);margin-top:6px}
+.switchrow{display:flex;gap:10px}
+.switchrow button{flex:1;border:1px solid var(--line);background:transparent;color:var(--mist);padding:12px;border-radius:12px;text-align:left;font-size:13px}
+.switchrow button[aria-pressed="true"]{border-color:var(--glow);color:var(--foam);background:rgba(89,210,255,.08)}
+.switchrow b{display:block;font-size:14px;color:inherit;font-weight:600;margin-bottom:2px}
+.timebox{border:1px solid rgba(89,210,255,.3);background:rgba(89,210,255,.06);border-radius:14px;padding:16px;display:grid;gap:14px}
+.timebox h4{margin:0;font-size:13.5px;font-weight:600;color:var(--glow)}
+.detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.dg{border:1px solid var(--line-soft);border-radius:12px;padding:12px}
+.dg .k{font-size:11.5px;color:var(--mist)}
+.dg .v{font-size:14px;margin-top:4px;font-weight:600}
+.block{border:1px solid var(--line-soft);border-radius:14px;padding:16px}
+.block .k{font-size:11.5px;color:var(--mist);margin-bottom:7px}
+.block p{margin:0;line-height:1.6;font-size:14.5px;white-space:pre-wrap}
+.growth{height:8px;border-radius:99px;background:rgba(255,255,255,.1);overflow:hidden;margin-top:8px}
+.growth i{display:block;height:100%;background:linear-gradient(90deg,var(--r1),var(--r4),var(--r5))}
+.answer-live{border-left:3px solid var(--ok);padding-left:14px}
+
+.toast{position:fixed;left:50%;bottom:26px;translate:-50% 0;z-index:90;
+  background:var(--panel-solid);border:1px solid var(--line);border-radius:12px;padding:12px 18px;font-size:14px;
+  box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:opacity .2s, translate .2s}
+.toast.show{opacity:1;translate:-50% -8px}
+.fab{position:fixed;right:22px;bottom:22px;z-index:35;padding:15px 22px;border-radius:999px;font-size:15px}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand"><span class="mark"></span>Bubble<small>raise it · back it · pop it</small></div>
+  <div class="spacer"></div>
+  <div class="seg" role="group" aria-label="Choose view">
+    <button id="tabUser" aria-pressed="true">I raise bubbles</button>
+    <button id="tabAdmin" aria-pressed="false">Ops team</button>
+  </div>
+  <button class="icon-btn" id="themeBtn" title="Switch light / deep">◐</button>
+  <div class="who" id="whoChip" title="Click to change who you are"><b id="whoName">—</b></div>
+</header>
+
+<main class="wrap">
+  <!-- ============ USER ============ -->
+  <section id="userView">
+    <div class="hero">
+      <div class="hero-card">
+        <div class="hero-orbs">
+          <div class="orb" style="width:120px;height:120px;right:-20px;top:-30px"></div>
+          <div class="orb" style="width:66px;height:66px;right:96px;bottom:24px"></div>
+          <div class="orb" style="width:34px;height:34px;right:26px;bottom:78px"></div>
+        </div>
+        <h1>Something slowing your work down? Float it.</h1>
+        <p>Describe the problem, suggest your fix, rate how much it hurts. Every colleague who backs your bubble makes it bigger — and a big bubble is impossible for the ops team to miss.</p>
+        <button class="btn primary" id="newBubbleBtn">Raise a bubble</button>
+      </div>
+      <div class="stats" id="userStats"></div>
+    </div>
+
+    <div class="tabs" role="tablist">
+      <button id="tabMine" role="tab" aria-selected="true">My bubbles</button>
+      <button id="tabAll" role="tab" aria-selected="false">Everyone's bubbles</button>
+      <button id="tabDone" role="tab" aria-selected="false">Popped &amp; archived</button>
+    </div>
+    <div class="cards" id="userCards"></div>
+  </section>
+
+  <!-- ============ ADMIN ============ -->
+  <section id="adminView" hidden>
+    <div class="gate" id="gate">
+      <div class="mark-lg"></div>
+      <h1 style="font-size:26px">Ops team sign-in</h1>
+      <p class="hint" style="margin-top:8px">The floor is waiting on you.</p>
+      <input id="pin" type="password" inputmode="numeric" maxlength="12" placeholder="••••" aria-label="Access code" />
+      <button class="btn primary" id="pinBtn" style="width:100%">Open the bubble field</button>
+      <p class="hint" style="margin-top:14px">Demo code: <b>1234</b> — change it in settings once you're in.</p>
+    </div>
+
+    <div id="adminBoard" hidden>
+      <div class="toolbar">
+        <div class="seg" role="group" aria-label="Field or list">
+          <button id="viewField" aria-pressed="true">Bubble field</button>
+          <button id="viewList" aria-pressed="false">List</button>
+        </div>
+        <select class="field-input" id="fArea"><option value="">All areas</option></select>
+        <select class="field-input" id="fType">
+          <option value="">Internal + customer</option>
+          <option value="internal">Internal only</option>
+          <option value="customer">Customer-facing only</option>
+        </select>
+        <select class="field-input" id="fSort">
+          <option value="size">Sort: biggest first</option>
+          <option value="rating">Sort: severity</option>
+          <option value="area">Sort: area of work</option>
+          <option value="age">Sort: oldest first</option>
+          <option value="backers">Sort: most backed</option>
+        </select>
+        <input class="field-input" id="fSearch" placeholder="Search problems…" style="flex:1;min-width:160px" />
+        <div class="spacer"></div>
+        <button class="btn sm ghost" id="archiveBtn">Archive</button>
+        <button class="btn sm ghost" id="settingsBtn">Settings</button>
+      </div>
+
+      <div id="field"><div class="field-note" id="fieldNote"></div></div>
+      <div id="listWrap" hidden class="tablewrap">
+        <table>
+          <thead><tr>
+            <th class="rank">#</th><th>Problem</th><th>Area</th><th>Severity</th><th>Backers</th><th>Age</th><th>Pressure</th>
+          </tr></thead>
+          <tbody id="listBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</main>
+
+<button class="btn primary fab" id="fabNew">＋ Raise a bubble</button>
+
+<!-- ===== form modal ===== -->
+<div class="veil" id="formVeil" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="formTitle">
+    <div class="modal-head"><h2 id="formTitle">Raise a bubble</h2><button class="icon-btn" data-close>✕</button></div>
+    <div class="modal-body">
+      <div class="grid2">
+        <label class="f">Your name or employee ID<input id="iName" placeholder="e.g. Ananya R / EMP-2214" /></label>
+        <label class="f">Area of work<input id="iArea" list="areaList" placeholder="e.g. Warehouse dispatch" /></label>
+      </div>
+      <datalist id="areaList"></datalist>
+      <label class="f">Which process is affected?<input id="iProcess" placeholder="e.g. Nightly stock reconciliation" /></label>
+
+      <div>
+        <div style="font-size:13px;color:var(--mist);margin-bottom:7px">Where does this sit?</div>
+        <div class="switchrow" id="typeRow">
+          <button data-type="internal" aria-pressed="true"><b>Internal work</b>Stays open until it's answered</button>
+          <button data-type="customer" aria-pressed="false"><b>Customer-facing</b>Lives 50 days, grows from day 31</button>
+        </div>
+      </div>
+
+      <label class="f">The problem<textarea id="iProblem" placeholder="What actually happens, and how often?"></textarea></label>
+      <label class="f">Your solution or fix<textarea id="iSolution" placeholder="What would you change? Even a rough idea counts."></textarea></label>
+
+      <div>
+        <div style="font-size:13px;color:var(--mist);margin-bottom:7px">How badly does this hurt?</div>
+        <div class="rate" id="rateRow">
+          <button data-v="1" aria-pressed="false">1</button>
+          <button data-v="2" aria-pressed="false">2</button>
+          <button data-v="3" aria-pressed="true">3</button>
+          <button data-v="4" aria-pressed="false">4</button>
+          <button data-v="5" aria-pressed="false">5</button>
+        </div>
+        <div class="rate-legend" id="rateLegend"></div>
+      </div>
+
+      <div class="timebox" id="timeBox" hidden>
+        <h4>Customer-facing impact</h4>
+        <div class="grid2">
+          <label class="f">Time lost each week (minutes)<input id="iLost" type="number" min="0" placeholder="e.g. 90" /></label>
+          <label class="f">Time it took you to raise this (minutes)<input id="iSpent" type="number" min="0" placeholder="e.g. 10" /></label>
+        </div>
+        <label class="f">Will your fix win that time back?
+          <select id="iSaves">
+            <option value="yes">Yes — it removes the delay</option>
+            <option value="partly">Partly — it reduces it</option>
+            <option value="no">No — but it prevents errors</option>
+          </select>
+        </label>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn ghost" data-close>Cancel</button>
+      <button class="btn primary" id="submitBubble">Float it</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== detail modal ===== -->
+<div class="veil" id="detailVeil" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="dTitle">
+    <div class="modal-head">
+      <h2 id="dTitle"></h2><button class="icon-btn" data-close>✕</button>
+    </div>
+    <div class="modal-body" id="dBody"></div>
+    <div class="modal-foot" id="dFoot"></div>
+  </div>
+</div>
+
+<!-- ===== settings modal ===== -->
+<div class="veil" id="setVeil" hidden>
+  <div class="modal" style="width:min(560px,100%)" role="dialog" aria-modal="true">
+    <div class="modal-head"><h2>Settings</h2><button class="icon-btn" data-close>✕</button></div>
+    <div class="modal-body">
+      <label class="f">Ops access code<input id="sPin" /></label>
+      <label class="f">Demo clock — jump forward to watch bubbles grow
+        <input id="sDays" type="range" min="0" max="60" step="1" />
+      </label>
+      <div class="hint" id="sDaysLabel"></div>
+      <div class="grid2">
+        <button class="btn" id="sExport">Export data (JSON)</button>
+        <button class="btn" id="sImport">Import data</button>
+      </div>
+      <button class="btn ghost" id="sSeed">Reload demo bubbles</button>
+      <button class="btn danger" id="sWipe">Erase everything</button>
+      <p class="hint">Everything lives in this browser only — nothing leaves your machine.</p>
+    </div>
+    <div class="modal-foot"><button class="btn primary" data-close>Done</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<input type="file" id="fileIn" accept="application/json" hidden />
+
+<script>
+(() => {
+"use strict";
+const KEY = "bubble.store.v1";
+const DAY = 86400000;
+const LIFESPAN = 50;      // customer-facing bubbles expire after this
+const CALM = 30;          // no growth before this day
+const RATE_WORDS = {1:"Mild annoyance",2:"Slows me down",3:"Costs real time every week",4:"Blocks work regularly",5:"Customers feel it now"};
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const esc = s => String(s??"").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const uid = () => Math.random().toString(36).slice(2,9);
+
+/* ---------------- state ---------------- */
+let S = load();
+function load(){
+  try{ const r = JSON.parse(localStorage.getItem(KEY)); if(r && r.bubbles) return r; }catch(e){}
+  return { bubbles: seed(), me:"", pin:"1234", offset:0, theme:"deep" };
+}
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){ toast("Storage is full or blocked."); } }
+const now = () => Date.now() + S.offset*DAY;
+
+/* ---------------- bubble maths ---------------- */
+const ageDays = b => Math.max(0,(now() - b.createdAt)/DAY);
+const backers = b => 1 + (b.backers?b.backers.length:0);
+function pressure(b){                       // 0 → 1 escalation from neglect
+  if(b.type!=="customer") return 0;
+  const d = ageDays(b);
+  if(d <= CALM) return 0;
+  return Math.min(1,(d-CALM)/(LIFESPAN-CALM));
+}
+function state(b){
+  if(b.status==="popped") return "popped";
+  if(b.type==="customer" && ageDays(b) > LIFESPAN) return "expired";
+  return "active";
+}
+function radius(b){
+  const base = 26 + Math.sqrt(backers(b))*17 + b.rating*4.5;
+  return Math.round(base * (1 + pressure(b)*0.85));
+}
+const hue = r => ["","var(--r1)","var(--r2)","var(--r3)","var(--r4)","var(--r5)"][r];
+const hueHex = r => ["","#4fd1a5","#58c7f0","#9b8cff","#ffb25c","#ff6b81"][r];
+const fmtAge = b => { const d=Math.floor(ageDays(b)); return d===0?"today":d===1?"1 day":d+" days"; };
+const fmtDate = t => new Date(t).toLocaleString([], {day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"});
+
+/* ---------------- seed ---------------- */
+function seed(){
+  const ago = d => Date.now() - d*DAY;
+  const mk = o => Object.assign({ id:uid(), backers:[], status:"open", answer:"", type:"internal" }, o);
+  return [
+    mk({ author:"Ananya R", area:"Warehouse dispatch", process:"Nightly stock reconciliation", rating:5, type:"customer",
+      problem:"The scanner drops its connection every time we move past bay 12, so the last 40 minutes of the shift is spent re-keying codes by hand. Two people end up doing one person's job.",
+      solution:"Add a second access point above bay 12. IT quoted one already — it's sitting unapproved.",
+      lostMins:200, spentMins:12, saves:"yes", createdAt:ago(41), backers:["Vikram S","Joel D","Meera P","Sana K","Ravi T"] }),
+    mk({ author:"EMP-2214", area:"Customer support", process:"Refund approval", rating:4, type:"customer",
+      problem:"Refunds above ₹2,000 need two approvals, but the second approver is only online in the morning. Customers wait a full day for a five-minute decision.",
+      solution:"Let the shift lead be the second approver after 2pm.",
+      lostMins:120, spentMins:8, saves:"partly", createdAt:ago(34), backers:["Nikhil A","Farah M","Deepa I"] }),
+    mk({ author:"Joel D", area:"IT helpdesk", process:"New joiner setup", rating:3,
+      problem:"Laptops arrive without the VPN profile, so every new joiner loses their first morning on a ticket we already know is coming.",
+      solution:"Bake the VPN profile into the base image before shipping.",
+      createdAt:ago(18), backers:["Ananya R","Sana K","Priya B","Tom H"] }),
+    mk({ author:"Meera P", area:"Billing", process:"Monthly invoice run", rating:4,
+      problem:"The invoice template pulls the old GST rate for three legacy accounts, so finance corrects them by hand every single month.",
+      solution:"Fix the rate in the template rather than patching the output.",
+      createdAt:ago(9), backers:["Rahul N","Deepa I"] }),
+    mk({ author:"Sana K", area:"Logistics", process:"Route handover", rating:2,
+      problem:"Drivers get the route sheet on paper at 6am, so any change after 5:30am never reaches them.",
+      solution:"Send the sheet to the driver app instead, paper as backup only.",
+      createdAt:ago(5), backers:["Joel D"] }),
+    mk({ author:"Vikram S", area:"Quality", process:"Batch sampling", rating:5,
+      problem:"Sampling frequency is written in two documents that disagree. Auditors have flagged it twice.",
+      solution:"Retire the older SOP and link both teams to one page.",
+      createdAt:ago(23), backers:["Meera P","Ananya R","Tom H","Farah M","Priya B","Rahul N"] }),
+    mk({ author:"Priya B", area:"HR operations", process:"Shift swap requests", rating:2,
+      problem:"Swaps go through email, so there is no record of who approved what when payroll queries it.",
+      solution:"A shared sheet with a timestamp column would be enough.",
+      createdAt:ago(3), backers:[] }),
+    mk({ author:"Tom H", area:"Customer support", process:"Escalation routing", rating:3, type:"customer",
+      problem:"Tier-2 escalations land in a shared mailbox nobody owns overnight, so anything raised after 8pm is picked up the next afternoon.",
+      solution:"Assign an owner per night in the rota, same as the phone line.",
+      lostMins:75, spentMins:6, saves:"yes", createdAt:ago(12), backers:["Nikhil A"] }),
+    mk({ author:"Rahul N", area:"Warehouse dispatch", process:"Pallet labelling", rating:1,
+      problem:"Label printer defaults to the wrong size after every power cut.",
+      solution:"Save the profile as the startup default.",
+      createdAt:ago(2), backers:[] }),
+    mk({ author:"Deepa I", area:"Billing", process:"Credit note issue", rating:3,
+      problem:"Credit notes cannot be issued without a manager PIN, and there is one PIN for four managers.",
+      solution:"Individual PINs so the audit trail means something.",
+      status:"popped", answer:"Individual PINs issued on 12th, old shared PIN retired. Audit log now shows the approver's name on every credit note.",
+      poppedAt: ago(1), poppedBy:"Ops", createdAt:ago(15), backers:["Meera P","Rahul N"] })
+  ];
+}
+
+/* ---------------- shell ---------------- */
+let mode = "user", userTab = "mine", adminView = "field", showArchive = false;
+document.documentElement.dataset.theme = S.theme || "deep";
+
+$("#themeBtn").onclick = () => {
+  S.theme = (S.theme==="deep") ? "milk" : "deep";
+  document.documentElement.dataset.theme = S.theme; save();
+  if(mode==="admin") renderAdmin();
+};
+$("#tabUser").onclick = () => setMode("user");
+$("#tabAdmin").onclick = () => setMode("admin");
+function setMode(m){
+  mode = m;
+  $("#tabUser").setAttribute("aria-pressed", m==="user");
+  $("#tabAdmin").setAttribute("aria-pressed", m==="admin");
+  $("#userView").hidden = m!=="user";
+  $("#adminView").hidden = m!=="admin";
+  $("#fabNew").hidden = m!=="user";
+  m==="user" ? renderUser() : renderAdmin();
+}
+$("#whoChip").onclick = () => {
+  const n = prompt("Who's raising bubbles from this device?", S.me || "");
+  if(n!==null){ S.me = n.trim(); save(); renderWho(); renderUser(); }
+};
+function renderWho(){ $("#whoName").textContent = S.me || "Set your name"; }
+
+/* ---------------- user view ---------------- */
+$("#tabMine").onclick = () => { userTab="mine"; renderUser(); };
+$("#tabAll").onclick  = () => { userTab="all";  renderUser(); };
+$("#tabDone").onclick = () => { userTab="done"; renderUser(); };
+
+function renderUser(){
+  renderWho();
+  $("#tabMine").setAttribute("aria-selected", userTab==="mine");
+  $("#tabAll").setAttribute("aria-selected", userTab==="all");
+  $("#tabDone").setAttribute("aria-selected", userTab==="done");
+
+  const open = S.bubbles.filter(b => state(b)==="active");
+  const mine = S.bubbles.filter(b => b.author === S.me);
+  const popped = S.bubbles.filter(b => b.status==="popped");
+  const answeredPct = S.bubbles.length ? Math.round(popped.length/S.bubbles.length*100) : 0;
+  $("#userStats").innerHTML = [
+    ["Floating now", open.length],
+    ["Popped by ops", popped.length],
+    ["Yours", mine.length],
+    ["Answered", answeredPct + "%"]
+  ].map(([l,n]) => `<div class="stat"><div class="n">${n}</div><div class="l">${l}</div></div>`).join("");
+
+  let list;
+  if(userTab==="mine") list = mine.filter(b => b.status!=="popped");
+  else if(userTab==="all") list = S.bubbles.filter(b => state(b)==="active");
+  else list = S.bubbles.filter(b => state(b)!=="active");
+  list = list.slice().sort((a,b) => radius(b)-radius(a));
+
+  const wrap = $("#userCards");
+  if(!list.length){
+    wrap.innerHTML = `<div class="empty" style="grid-column:1/-1"><b>${
+      userTab==="mine" ? (S.me ? "You haven't raised anything yet" : "Tell us who you are first")
+      : userTab==="done" ? "Nothing has been popped yet" : "The field is clear"}</b>${
+      userTab==="mine" ? "Raise a bubble and your colleagues can back it." : "Popped bubbles keep their answer here so you can circle back."}</div>`;
+    return;
+  }
+  wrap.innerHTML = list.map(b => {
+    const st = state(b), p = pressure(b);
+    const tag = st==="popped" ? `<span class="pill live"><span class="dot" style="background:var(--ok)"></span>Popped</span>`
+      : st==="expired" ? `<span class="pill hot"><span class="dot" style="background:var(--hot)"></span>Expired unanswered</span>`
+      : p>0 ? `<span class="pill ${p>.6?"hot":"warm"}"><span class="dot" style="background:${p>.6?"var(--hot)":"var(--warn)"}"></span>Growing · day ${Math.floor(ageDays(b))} of ${LIFESPAN}</span>`
+      : `<span class="pill live"><span class="dot" style="background:${hue(b.rating)}"></span>Severity ${b.rating}</span>`;
+    const backed = (b.backers||[]).includes(S.me);
+    const canBack = st==="active" && S.me && b.author!==S.me;
+    return `<article class="card" data-id="${b.id}">
+      <div class="area">${esc(b.area)} · ${esc(b.process)}</div>
+      <h3>${esc(b.problem.slice(0,96))}${b.problem.length>96?"…":""}</h3>
+      <div class="sol">${st==="popped" ? "Answer: "+esc(b.answer.slice(0,110)) : esc(b.solution.slice(0,110))}${(st==="popped"?b.answer:b.solution).length>110?"…":""}</div>
+      <div class="foot">
+        ${tag}
+        <span class="backers">${backers(b)} backing</span>
+        <span class="spacer"></span>
+        ${canBack ? `<button class="btn sm ${backed?"ghost":""}" data-back="${b.id}">${backed?"Backed ✓":"Back this"}</button>`
+                  : `<button class="btn sm ghost" data-open="${b.id}">Open</button>`}
+      </div>
+    </article>`;
+  }).join("");
+}
+
+$("#userCards").addEventListener("click", e => {
+  const back = e.target.closest("[data-back]");
+  if(back){
+    const b = S.bubbles.find(x => x.id===back.dataset.back);
+    b.backers = b.backers || [];
+    const i = b.backers.indexOf(S.me);
+    if(i>-1){ b.backers.splice(i,1); toast("Backing removed."); }
+    else { b.backers.push(S.me); toast("Backed — the bubble just grew."); }
+    save(); renderUser(); return;
+  }
+  const card = e.target.closest("[data-id]");
+  if(card) openDetail(card.dataset.id);
+});
+
+/* ---------------- raise form ---------------- */
+let fType = "internal", fRate = 3;
+const openForm = () => {
+  $("#iName").value = S.me || "";
+  ["iArea","iProcess","iProblem","iSolution","iLost","iSpent"].forEach(id => $("#"+id).value = "");
+  setType("internal"); setRate(3);
+  $("#areaList").innerHTML = [...new Set(S.bubbles.map(b=>b.area))].map(a=>`<option value="${esc(a)}">`).join("");
+  show("#formVeil"); $("#iName").focus();
+};
+$("#newBubbleBtn").onclick = openForm;
+$("#fabNew").onclick = openForm;
+$("#typeRow").onclick = e => { const b = e.target.closest("[data-type]"); if(b) setType(b.dataset.type); };
+function setType(t){
+  fType = t;
+  $$("#typeRow button").forEach(b => b.setAttribute("aria-pressed", b.dataset.type===t));
+  $("#timeBox").hidden = t!=="customer";
+}
+$("#rateRow").onclick = e => { const b = e.target.closest("[data-v]"); if(b) setRate(+b.dataset.v); };
+function setRate(v){
+  fRate = v;
+  $$("#rateRow button").forEach(b => b.setAttribute("aria-pressed", +b.dataset.v===v));
+  $("#rateLegend").textContent = v + " — " + RATE_WORDS[v];
+}
+$("#submitBubble").onclick = () => {
+  const name = $("#iName").value.trim(), area = $("#iArea").value.trim(), process = $("#iProcess").value.trim();
+  const problem = $("#iProblem").value.trim(), solution = $("#iSolution").value.trim();
+  if(!name || !area || !process || !problem){ toast("Name, area, process and problem are needed."); return; }
+  S.me = name;
+  S.bubbles.unshift({
+    id:uid(), author:name, area, process, problem, solution: solution || "No fix suggested yet.",
+    rating:fRate, type:fType, status:"open", backers:[], answer:"", createdAt:Date.now(),
+    lostMins: fType==="customer" ? (+$("#iLost").value||0) : null,
+    spentMins: fType==="customer" ? (+$("#iSpent").value||0) : null,
+    saves: fType==="customer" ? $("#iSaves").value : null
+  });
+  save(); hide("#formVeil"); userTab="mine"; renderUser();
+  toast("Your bubble is floating. Ops can see it now.");
+};
+
+/* ---------------- admin ---------------- */
+let unlocked = false;
+$("#pinBtn").onclick = tryPin;
+$("#pin").addEventListener("keydown", e => { if(e.key==="Enter") tryPin(); });
+function tryPin(){
+  if($("#pin").value === S.pin){ unlocked = true; $("#pin").value=""; renderAdmin(); }
+  else { toast("That code doesn't match. Try 1234."); $("#pin").select(); }
+}
+$("#viewField").onclick = () => { adminView="field"; renderAdmin(); };
+$("#viewList").onclick  = () => { adminView="list";  renderAdmin(); };
+$("#archiveBtn").onclick = () => { showArchive = !showArchive; renderAdmin(); };
+["fArea","fType","fSort","fSearch"].forEach(id => $("#"+id).addEventListener("input", renderAdmin));
+
+function adminList(){
+  const q = $("#fSearch").value.toLowerCase().trim();
+  let list = S.bubbles.filter(b => showArchive ? state(b)!=="active" : state(b)==="active");
+  const a = $("#fArea").value, t = $("#fType").value;
+  if(a) list = list.filter(b => b.area===a);
+  if(t) list = list.filter(b => b.type===t);
+  if(q) list = list.filter(b => (b.problem+b.solution+b.area+b.process+b.author).toLowerCase().includes(q));
+  const s = $("#fSort").value;
+  const cmp = {
+    size: (x,y) => radius(y)-radius(x),
+    rating: (x,y) => y.rating-x.rating || radius(y)-radius(x),
+    area: (x,y) => x.area.localeCompare(y.area) || radius(y)-radius(x),
+    age: (x,y) => x.createdAt-y.createdAt,
+    backers: (x,y) => backers(y)-backers(x)
+  }[s];
+  return list.sort(cmp);
+}
+
+function renderAdmin(){
+  $("#gate").hidden = unlocked;
+  $("#adminBoard").hidden = !unlocked;
+  if(!unlocked){ $("#pin").focus(); return; }
+
+  const areas = [...new Set(S.bubbles.map(b=>b.area))].sort();
+  const sel = $("#fArea"), keep = sel.value;
+  sel.innerHTML = `<option value="">All areas</option>` + areas.map(a=>`<option${a===keep?" selected":""}>${esc(a)}</option>`).join("");
+  $("#archiveBtn").textContent = showArchive ? "← Active bubbles" : "Archive";
+  $("#viewField").setAttribute("aria-pressed", adminView==="field");
+  $("#viewList").setAttribute("aria-pressed", adminView==="list");
+  $("#field").hidden = adminView!=="field";
+  $("#listWrap").hidden = adminView!=="list";
+  adminView==="field" ? renderField() : renderTable();
+}
+
+/* --- packing: biggest in the centre, smaller radiating outward --- */
+function packed(items){
+  const placed = [];
+  items.forEach((it, i) => {
+    if(i===0){ it.x=0; it.y=0; placed.push(it); return; }
+    const gap = 7;
+    outer:
+    for(let rad = it.r; rad < 5000; rad += 7){
+      const steps = Math.max(14, Math.round(2*Math.PI*rad / Math.max(16, it.r*0.75)));
+      const spin = rad * 0.11;
+      for(let s=0; s<steps; s++){
+        const ang = spin + (s/steps)*Math.PI*2;
+        const x = Math.cos(ang)*rad*1.12, y = Math.sin(ang)*rad*0.86;
+        let ok = true;
+        for(const p of placed){
+          const dx=p.x-x, dy=p.y-y;
+          if(dx*dx+dy*dy < (p.r+it.r+gap)**2){ ok=false; break; }
+        }
+        if(ok){ it.x=x; it.y=y; placed.push(it); break outer; }
+      }
+    }
+    if(it.x===undefined){ it.x=0; it.y=0; placed.push(it); }
+  });
+  return placed;
+}
+
+function renderField(){
+  const host = $("#field");
+  const list = adminList().slice().sort((a,b) => radius(b)-radius(a));
+  host.innerHTML = `<div class="field-note" id="fieldNote"></div>`;
+  if(!list.length){
+    host.innerHTML += `<div class="empty" style="position:absolute;inset:26px;display:grid;align-content:center;border:0"><b>${showArchive?"Nothing archived yet":"No bubbles match that filter"}</b>${showArchive?"Popped and expired bubbles collect here.":"Clear the filters to see the whole field."}</div>`;
+    return;
+  }
+  const items = packed(list.map(b => ({ b, r: radius(b) })));
+  let minX=1e9,maxX=-1e9,minY=1e9,maxY=-1e9;
+  items.forEach(i => { minX=Math.min(minX,i.x-i.r); maxX=Math.max(maxX,i.x+i.r); minY=Math.min(minY,i.y-i.r); maxY=Math.max(maxY,i.y+i.r); });
+  const w = maxX-minX, h = maxY-minY;
+  const cw = host.clientWidth-28, ch = host.clientHeight-28;
+  const scale = Math.min(1.25, cw/w, ch/h);
+  const offX = (cw - w*scale)/2 + 14 - minX*scale;
+  const offY = (ch - h*scale)/2 + 14 - minY*scale;
+
+  items.forEach((it, i) => {
+    const b = it.b, d = it.r*2*scale, p = pressure(b), c = hueHex(b.rating);
+    const el = document.createElement("button");
+    el.className = "bub" + (d<74 ? " tiny" : "");
+    el.style.cssText = `width:${d}px;height:${d}px;left:${offX+it.x*scale-it.r*scale}px;top:${offY+it.y*scale-it.r*scale}px;
+      background:radial-gradient(circle at 32% 26%, rgba(255,255,255,.92) 0 5%, ${c}dd 24%, ${c}77 62%, ${c}33 100%);
+      box-shadow:inset 0 -10px 24px ${c}55, 0 10px 30px ${c}33${p>.5?`, 0 0 0 ${2+p*4}px ${c}22`:""};
+      animation-delay:${(i%7)*0.6}s; font-size:${Math.max(10,Math.min(17,d/9))}px`;
+    el.dataset.id = b.id;
+    el.innerHTML = `<div class="b-area">${esc(b.area)}</div><div class="b-meta">${backers(b)} backing · sev ${b.rating}${p>0?` · day ${Math.floor(ageDays(b))}`:""}</div>`;
+    el.title = b.problem;
+    el.onclick = () => openDetail(b.id);
+    host.appendChild(el);
+  });
+  const growing = list.filter(b => pressure(b)>0).length;
+  $("#fieldNote").textContent = `${list.length} bubble${list.length>1?"s":""} in the field${growing?` · ${growing} growing from neglect`:""} · biggest sits in the centre`;
+}
+
+function renderTable(){
+  const list = adminList();
+  const max = Math.max(...list.map(radius), 1);
+  $("#listBody").innerHTML = list.length ? list.map((b,i) => {
+    const st = state(b), p = pressure(b);
+    return `<tr data-id="${b.id}">
+      <td class="rank">${i+1}</td>
+      <td><div style="font-weight:600;max-width:46ch">${esc(b.problem.slice(0,90))}${b.problem.length>90?"…":""}</div>
+          <div style="color:var(--mist);font-size:12px;margin-top:3px">${esc(b.process)} · ${esc(b.author)}${st==="popped"?" · popped":st==="expired"?" · expired unanswered":""}</div></td>
+      <td>${esc(b.area)}</td>
+      <td><span class="pill"><span class="dot" style="background:${hue(b.rating)}"></span>${b.rating}</span></td>
+      <td>${backers(b)}</td>
+      <td>${fmtAge(b)}${b.type==="customer"?` <span style="color:var(--mist)">/ ${LIFESPAN}</span>`:""}</td>
+      <td><div class="sizebar" style="width:${Math.round(radius(b)/max*100)}%"></div>
+          <div style="font-size:11px;color:var(--mist);margin-top:4px">${p>0?Math.round(p*100)+"% escalated":"steady"}</div></td>
+    </tr>`;
+  }).join("") : `<tr><td colspan="7" style="padding:38px;text-align:center;color:var(--mist)">Nothing here. Clear the filters or switch out of the archive.</td></tr>`;
+}
+$("#listBody").addEventListener("click", e => {
+  const tr = e.target.closest("tr[data-id]"); if(tr) openDetail(tr.dataset.id);
+});
+
+/* ---------------- detail + pop ---------------- */
+let openId = null;
+function openDetail(id){
+  const b = S.bubbles.find(x => x.id===id); if(!b) return;
+  openId = id;
+  const st = state(b), p = pressure(b), isAdmin = mode==="admin" && unlocked;
+  $("#dTitle").textContent = b.area + " — " + b.process;
+
+  const time = b.type==="customer" ? `
+    <div class="detail-grid">
+      <div class="dg"><div class="k">Time lost each week</div><div class="v">${b.lostMins||0} min</div></div>
+      <div class="dg"><div class="k">Time spent raising this</div><div class="v">${b.spentMins||0} min</div></div>
+      <div class="dg"><div class="k">Fix wins time back</div><div class="v">${({yes:"Yes",partly:"Partly",no:"Prevents errors"})[b.saves]||"—"}</div></div>
+      <div class="dg"><div class="k">Payback</div><div class="v">${b.lostMins&&b.spentMins?Math.round(b.lostMins/Math.max(1,b.spentMins))+"× in week one":"—"}</div></div>
+    </div>` : "";
+
+  const life = b.type==="customer" ? `
+    <div class="block">
+      <div class="k">Lifecycle — customer-facing bubbles live ${LIFESPAN} days and start growing on day ${CALM+1}</div>
+      <p style="font-size:13.5px">Day ${Math.floor(ageDays(b))} of ${LIFESPAN}. ${
+        st==="expired" ? "Expired with no action taken — kept on record."
+        : p===0 ? `Steady for another ${Math.ceil(CALM-ageDays(b))} days.`
+        : `Escalated ${Math.round(p*100)}% — it reaches full size on day ${LIFESPAN}.`}</p>
+      <div class="growth"><i style="width:${Math.round(Math.min(1,ageDays(b)/LIFESPAN)*100)}%"></i></div>
+    </div>` : "";
+
+  $("#dBody").innerHTML = `
+    <div class="detail-grid">
+      <div class="dg"><div class="k">Raised by</div><div class="v">${esc(b.author)}</div></div>
+      <div class="dg"><div class="k">Severity</div><div class="v"><span class="pill"><span class="dot" style="background:${hue(b.rating)}"></span>${b.rating} — ${RATE_WORDS[b.rating]}</span></div></div>
+      <div class="dg"><div class="k">Backed by</div><div class="v">${backers(b)} people</div></div>
+      <div class="dg"><div class="k">Raised on</div><div class="v" style="font-size:12.5px">${fmtDate(b.createdAt)}</div></div>
+    </div>
+    ${time}
+    <div class="block"><div class="k">The problem</div><p>${esc(b.problem)}</p></div>
+    <div class="block"><div class="k">Suggested fix</div><p>${esc(b.solution)}</p></div>
+    ${(b.backers&&b.backers.length)?`<div class="block"><div class="k">Also backed by</div><p style="font-size:13.5px">${b.backers.map(esc).join(", ")}</p></div>`:""}
+    ${life}
+    ${st==="popped" ? `<div class="block answer-live"><div class="k">Popped ${b.poppedAt?fmtDate(b.poppedAt):""}</div><p>${esc(b.answer)}</p></div>`
+      : isAdmin ? `<label class="f">Your answer — what was decided or done?
+          <textarea id="dAnswer" placeholder="A bubble can only be popped with an answer attached. This is the record everyone circles back to."></textarea></label>` : ""}`;
+
+  const foot = $("#dFoot");
+  if(st!=="popped" && isAdmin){
+    foot.innerHTML = `<button class="btn ghost" data-close>Close</button><button class="btn primary" id="popBtn" disabled>Pop this bubble</button>`;
+    const ta = $("#dAnswer"), pop = $("#popBtn");
+    ta.addEventListener("input", () => pop.disabled = ta.value.trim().length < 10);
+    pop.onclick = () => popBubble(b.id, ta.value.trim());
+  } else if(st!=="popped" && mode==="user" && S.me && b.author!==S.me){
+    const backed = (b.backers||[]).includes(S.me);
+    foot.innerHTML = `<button class="btn ghost" data-close>Close</button><button class="btn ${backed?"":"primary"}" id="backBtn">${backed?"Remove my backing":"Back this bubble"}</button>`;
+    $("#backBtn").onclick = () => {
+      const i = b.backers.indexOf(S.me);
+      i>-1 ? b.backers.splice(i,1) : b.backers.push(S.me);
+      save(); hide("#detailVeil"); renderUser(); toast(i>-1?"Backing removed.":"Backed — the bubble just grew.");
+    };
+  } else {
+    foot.innerHTML = `<button class="btn primary" data-close>Close</button>`;
+  }
+  show("#detailVeil");
+}
+
+function popBubble(id, answer){
+  const b = S.bubbles.find(x => x.id===id);
+  b.status = "popped"; b.answer = answer; b.poppedAt = Date.now(); b.poppedBy = "Ops team";
+  save(); hide("#detailVeil");
+  const el = document.querySelector(`.bub[data-id="${id}"]`);
+  if(el){ el.classList.add("popping"); setTimeout(renderAdmin, 420); } else renderAdmin();
+  toast("Popped — the answer is on the record.");
+}
+
+/* ---------------- settings ---------------- */
+$("#settingsBtn").onclick = () => {
+  $("#sPin").value = S.pin; $("#sDays").value = S.offset; daysLabel(); show("#setVeil");
+};
+$("#sPin").addEventListener("input", e => { S.pin = e.target.value || "1234"; save(); });
+$("#sDays").addEventListener("input", e => { S.offset = +e.target.value; save(); daysLabel(); renderAdmin(); });
+function daysLabel(){
+  $("#sDaysLabel").textContent = S.offset===0
+    ? "Today. Drag to fast-forward and watch neglected customer bubbles swell."
+    : `Pretending it is ${S.offset} day${S.offset>1?"s":""} from now.`;
+}
+$("#sExport").onclick = () => {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(S,null,2)],{type:"application/json"}));
+  a.download = "bubble-data.json"; a.click(); URL.revokeObjectURL(a.href);
+};
+$("#sImport").onclick = () => $("#fileIn").click();
+$("#fileIn").addEventListener("change", e => {
+  const f = e.target.files[0]; if(!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try{ const d = JSON.parse(r.result); if(!d.bubbles) throw 0; S = Object.assign(S,d); save(); renderAll(); toast("Data imported."); }
+    catch(err){ toast("That file isn't a Bubble export."); }
+  };
+  r.readAsText(f); e.target.value="";
+});
+$("#sSeed").onclick = () => { S.bubbles = seed(); S.offset = 0; save(); renderAll(); toast("Demo bubbles reloaded."); };
+$("#sWipe").onclick = () => { if(confirm("Erase every bubble on this device?")){ S.bubbles=[]; save(); renderAll(); toast("Field cleared."); } };
+
+/* ---------------- plumbing ---------------- */
+function show(sel){ $(sel).hidden = false; }
+function hide(sel){ $(sel).hidden = true; }
+document.addEventListener("click", e => { if(e.target.closest("[data-close]") || e.target.classList.contains("veil")) $$(".veil").forEach(v => v.hidden = true); });
+document.addEventListener("keydown", e => { if(e.key==="Escape") $$(".veil").forEach(v => v.hidden = true); });
+let tId; function toast(msg){ const t=$("#toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(tId); tId=setTimeout(()=>t.classList.remove("show"),2600); }
+let rId; addEventListener("resize", () => { clearTimeout(rId); rId=setTimeout(()=>{ if(mode==="admin"&&unlocked&&adminView==="field") renderField(); },180); });
+function renderAll(){ renderWho(); renderUser(); if(mode==="admin") renderAdmin(); }
+renderAll();
+})();
+</script>
+</body>
+</html>
